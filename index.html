@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="hi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bagar Billi v3.2</title>
+<style>
+:root{--bg:#0e0f14;--card:#1b1e28;--acc:#ff7a1a;--tx:#e9eef8;--mut:#8a92a6;--line:#252a38}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+#top{padding:12px 14px;background:var(--card);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+#tabs{flex:1;overflow:auto;padding:12px;padding-bottom:80px}
+.tab{display:none}.tab.on{display:block}
+#nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line)}
+#nav button{flex:1;background:none;border:0;color:var(--mut);padding:8px 0;font-size:11px}
+#nav button.on{color:var(--acc)}#nav button span{display:block;font-size:20px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700}
+.btn.alt{background:#2a3042;color:var(--tx)}
+input,select{width:100%;background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:11px;margin:6px 0}
+.item{background:var(--card);border-radius:12px;padding:10px;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+.circle{width:120px;height:120px;border-radius:50%;border:6px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;margin:16px auto}
+.wheel{width:180px;height:180px;border-radius:50%;background:conic-gradient(#ff7a1a,#ff3b3b,#7a5cff,#2ec5ff,#ff7a1a);margin:14px auto;transition:transform 2s cubic-bezier(.2,.8,.3,1);display:flex;align-items:center;justify-content:center;font-size:40px}
+</style></head><body>
+<div id="top"><b>🐱 Bagar Billi v3.2</b><small id="me"></small></div>
+<div id="tabs">
+<div id="t-login" class="tab on"><h2>Login Karo 😼</h2><input id="lu" placeholder="username"><input id="lp" type="password" placeholder="password"><div id="le" style="color:#ff6b6b"></div><button class="btn" style="width:100%" onclick="login()">Login / Signup</button></div>
+<div id="t-chats" class="tab"><h3>Chats 💬</h3><div style="display:flex;gap:6px"><input id="sq" placeholder="search user, billibot"><button class="btn alt" onclick="search()">🔍</button></div><div id="sres"></div><div id="clist"></div><div id="chatbox" style="display:none"><div style="display:flex;gap:8px;align-items:center"><button onclick="document.getElementById('chatbox').style.display='none'" class="btn alt">←</button><b id="ctitle"></b></div><div id="msgs" style="height:40vh;overflow:auto;margin:8px 0;display:flex;flex-direction:column;gap:6px"></div><div style="display:flex;gap:6px"><input id="mtext" placeholder="/joke likh"><button class="btn" onclick="send()">▶</button></div></div></div>
+<div id="t-games" class="tab"><h3>Spin & Party 🎲</h3><select id="gtype"><option value="spin_bottle">Spin Bottle</option><option value="hotseat">Hotseat</option><option value="confession">Confession</option><option value="wyr">Would You Rather</option><option value="mostlikely">Most Likely To</option></select><div style="display:flex;gap:6px"><button class="btn" onclick="gCreate()">Create</button><input id="gcode" placeholder="code"><button class="btn alt" onclick="gJoin()">Join</button></div><div id="wheel" class="wheel">🐱</div><button class="btn" style="width:100%" onclick="spin()">SPIN KARO</button><div id="gstate" style="margin-top:10px;background:var(--card);padding:10px;border-radius:10px">Lobby...</div></div>
+<div id="t-calc" class="tab"><h3>Calculators 💘</h3><select id="ctype"><option value="love">Love</option><option value="friendship">Friendship</option><option value="billi">Billi Meter</option><option value="ex">Ex Meter</option><option value="rishta">Rishta Meter</option></select><input id="n1" placeholder="Tera naam"><input id="n2" placeholder="Uska naam"><button class="btn" style="width:100%" onclick="calc()">Calculate 😼</button><div id="cres" style="text-align:center;display:none"><div id="pc" class="circle">0%</div><h3 id="ctitle2"></h3><p id="roast"></p><button class="btn alt" onclick="share()">Share 🔗</button></div></div>
+<div id="t-couple" class="tab"><h3>Couple Mode 💑</h3><div style="display:flex;gap:6px"><button class="btn" onclick="cpCreate()">Create Code</button><input id="ccode" placeholder="6-digit"><button class="btn alt" onclick="cpJoin()">Join</button></div><div id="cpstate" style="margin:10px 0;background:var(--card);padding:10px;border-radius:10px"></div><input id="cu1" placeholder="Name 1"><input id="cu2" placeholder="Name 2"><button class="btn" style="width:100%" onclick="cmatch()">Check Jodi 🔥</button><div id="mres" style="background:var(--card);padding:10px;border-radius:10px;margin-top:8px;display:none"></div></div>
+</div>
+<div id="nav"><button data-t="chats" class="on" onclick="switchTab('chats')"><span>💬</span>Chats</button><button data-t="games" onclick="switchTab('games')"><span>🎲</span>Games</button><button data-t="calc" onclick="switchTab('calc')"><span>💘</span>Calc</button><button data-t="couple" onclick="switchTab('couple')"><span>💑</span>Couple</button></div>
+<script>
+let TOKEN=localStorage.getItem('bb_t'), ME=null, cur=null, room=null, lastShare="";
+const $=s=>document.querySelector(s);
+async function api(p,b){let o={headers:{'X-Token':TOKEN||'','Content-Type':'application/json'}};if(b){o.method='POST';o.body=JSON.stringify(b)} let r=await fetch(p,o); let j=await r.json().catch(()=>({})); if(r.status==401){TOKEN=null;localStorage.removeItem('bb_t');location.reload()} return j;}
+function switchTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));document.getElementById('t-'+t).classList.add('on');document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));}
+async function login(){let j=await api('/api/auth',{username:$('#lu').value,password:$('#lp').value}); if(j.error){$('#le').textContent=j.error; return} TOKEN=j.token;localStorage.setItem('bb_t',TOKEN); ME=j.username; document.getElementById('t-login').classList.remove('on'); switchTab('chats'); $('#me').textContent=ME; loadChats();}
+async function loadChats(){let j=await api('/api/chats'); let el=$('#clist'); el.innerHTML=(j.chats||[]).map(c=>`<div class="item" onclick="openChat('dm','${c.user}')"><div style="width:36px;height:36px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center">${c.user[0].toUpperCase()}</div><div><b>${c.user}</b><br><small>${c.last||''}</small></div></div>`).join('')||'<small style="color:var(--mut)">Search me billibot likh ke chat kar</small>';}
+async function search(){let q=$('#sq').value; let j=await api('/api/users?q='+encodeURIComponent(q)); $('#sres').innerHTML=j.users.map(u=>`<div class="item" onclick="openChat('dm','${u.username}')"><b>${u.username}</b></div>`).join('')+`<div class="item" onclick="openChat('dm','billibot')"><b>billibot 🤖</b> <small>/joke /roast</small></div>`;}
+function openChat(k,t){cur={kind:k,target:t}; $('#ctitle').textContent=t; document.getElementById('chatbox').style.display='block'; loadMsgs();}
+async function loadMsgs(){if(!cur) return; let j=await api(`/api/msgs?kind=${cur.kind}&target=${cur.target}&after=0`); let box=$('#msgs'); box.innerHTML=(j.msgs||[]).map(m=>`<div style="align-self:${m.sender==ME?'flex-end':'flex-start'};background:${m.sender==ME?'var(--acc)':'var(--card)'};padding:8px 10px;border-radius:12px;max-width:80%">${m.text}</div>`).join(''); box.scrollTop=box.scrollHeight;}
+async function send(){let txt=$('#mtext').value; if(!txt) return; $('#mtext').value=''; await api('/api/send',{kind:cur.kind,target:cur.target,text:txt}); loadMsgs();}
+setInterval(()=>{if(cur) loadMsgs();},2000);
+async function gCreate(){let j=await api('/api/game/create',{type:$('#gtype').value}); room=j; $('#gcode').value=j.code; renderGame();}
+async function gJoin(){let j=await api('/api/game/join',{code:$('#gcode').value}); room=j; renderGame();}
+async function spin(){if(!room) return; $('#wheel').style.transform='rotate('+(720+Math.random()*720)+'deg)'; let j=await api('/api/game/spin',{code:room.code}); room=j; setTimeout(renderGame,1500);}
+function renderGame(){if(!room) return; $('#gstate').textContent=room.state.question||'Lobby - '+room.players.join(', ');}
+async function calc(){let j=await api('/api/calc/'+$('#ctype').value,{n1:$('#n1').value,n2:$('#n2').value}); if(j.error){alert(j.error);return} $('#cres').style.display='block'; $('#pc').textContent=j.percent+'%'; $('#ctitle2').textContent=j.title; $('#roast').textContent=j.roast; lastShare=j.share_text;}
+async function share(){if(navigator.share){try{await navigator.share({text:lastShare})}catch{}} else {navigator.clipboard.writeText(lastShare); alert('Copied: '+lastShare)}}
+async function cpCreate(){let j=await api('/api/couple/create',{}); $('#cpstate').innerHTML='Code: <b>'+j.code+'</b>';}
+async function cpJoin(){let j=await api('/api/couple/join',{code:$('#ccode').value}); $('#cpstate').textContent=j.ok?'Paired with '+j.partner:j.error;}
+async function cmatch(){let j=await api('/api/couple/match',{u1:$('#cu1').value,u2:$('#cu
